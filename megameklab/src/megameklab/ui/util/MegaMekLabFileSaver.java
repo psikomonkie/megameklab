@@ -164,13 +164,17 @@ public class MegaMekLabFileSaver {
                 }
                 ps.println(UnitUtil.saveUnitToString(entity, true));
             }
-
-            PopupMessages.showUnitSavedMessage(ownerFrame, entity, file);
-            return file.toString();
         } catch (Exception ex) {
             PopupMessages.showFileWriteError(ownerFrame, ex.getMessage());
             logger.error("", ex);
             return null;
         }
+
+        try {
+            PopupMessages.showUnitSavedMessage(ownerFrame, entity, file);
+        } catch (Exception ex) {
+            logger.error("Unable to show unit saved message", ex);
+        }
+        return file.toString();
     }
 }
