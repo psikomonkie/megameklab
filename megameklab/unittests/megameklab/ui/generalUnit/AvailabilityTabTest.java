@@ -34,10 +34,13 @@ package megameklab.ui.generalUnit;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 
+import megamek.client.ratgenerator.MissionRole;
 import megamek.common.equipment.Engine;
 import megamek.common.equipment.EquipmentType;
 import megamek.common.interfaces.ITechManager;
@@ -124,6 +127,33 @@ class AvailabilityTabTest {
         mek.setYear(3150);
 
         assertDoesNotThrow(tab::refresh);
+    }
+
+    @Test
+    void onlyRolesThatMeanSomethingForTheUnitTypeAreOffered() {
+        // A Mek has no business being offered "mek carrier" or "paratrooper". MissionRole.fitsUnitType() already knows
+        // which roles apply where, so the tab asks it rather than showing all fifty.
+        AvailabilityTab tab = new AvailabilityTab(new StubEntitySource(buildMek()));
+
+        assertTrue(tab.isRoleOffered(MissionRole.FIRE_SUPPORT), "A Mek can be fire support");
+        assertTrue(tab.isRoleOffered(MissionRole.URBAN), "A Mek can be an urban unit");
+        assertFalse(tab.isRoleOffered(MissionRole.MEK_CARRIER), "A Mek does not carry Meks");
+        assertFalse(tab.isRoleOffered(MissionRole.PARATROOPER), "Paratrooper is an infantry role");
+    }
+
+    @Test
+    void aRoleTheFileDeclaresIsShownEvenIfItDoesNotFit() {
+        // Quietly dropping something out of somebody's file is not this tab's job. Show it, warn, let them decide.
+        Mek mek = buildMek();
+        mek.setMissionRoles("fire_support,paratrooper");
+
+        AvailabilityTab tab = new AvailabilityTab(new StubEntitySource(mek));
+
+        assertTrue(tab.isRoleOffered(MissionRole.PARATROOPER),
+              "A role the file declares must stay visible so the player can remove it");
+        assertTrue(tab.getMismatchedRoles().contains(MissionRole.PARATROOPER),
+              "It should be flagged as not applying to this unit type");
+        assertFalse(tab.getMismatchedRoles().contains(MissionRole.FIRE_SUPPORT));
     }
 
     @Test

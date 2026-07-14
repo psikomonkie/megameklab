@@ -128,6 +128,9 @@ public class AvailabilityTab extends ITab {
     private final JPanel editorPanel = new JPanel();
 
     private final Map<MissionRole, JCheckBox> roleCheckBoxes = new LinkedHashMap<>();
+    private final JPanel rolesPanel = new JPanel(new GridLayout(0, ROLE_COLUMNS));
+    /** Roles the unit file declares that do not apply to this unit type. Shown, not dropped. */
+    private final Set<MissionRole> mismatchedRoles = EnumSet.noneOf(MissionRole.class);
 
     private final JButton addButton = new JButton("+ Add factions...");
     private final JButton removeButton = new JButton("- Remove");
@@ -153,6 +156,29 @@ public class AvailabilityTab extends ITab {
      */
     public AvailabilityTableModel getTableModel() {
         return tableModel;
+    }
+
+    /**
+     * Whether a role is on offer for this unit. A role that does not apply to the unit type is hidden, unless the unit
+     * file already declares it.
+     *
+     * @param role the role to check
+     *
+     * @return {@code true} if the player can see and tick it
+     */
+    public boolean isRoleOffered(MissionRole role) {
+        JCheckBox checkBox = roleCheckBoxes.get(role);
+
+        return (checkBox != null) && checkBox.isVisible();
+    }
+
+    /**
+     * The roles the unit file declares that do not apply to this unit type. The Force Generator ignores these.
+     *
+     * @return the mismatched roles
+     */
+    public Set<MissionRole> getMismatchedRoles() {
+        return Set.copyOf(mismatchedRoles);
     }
 
     /**
@@ -320,17 +346,16 @@ public class AvailabilityTab extends ITab {
     }
 
     private JPanel buildRolesPanel() {
-        JPanel panel = new JPanel(new GridLayout(0, ROLE_COLUMNS));
-        panel.setBorder(BorderFactory.createTitledBorder("Mission roles (optional)"));
+        rolesPanel.setBorder(BorderFactory.createTitledBorder("Mission roles (optional)"));
 
         for (MissionRole role : MissionRole.values()) {
             JCheckBox checkBox = new JCheckBox(role.toString().replace('_', ' '));
             checkBox.addActionListener(event -> writeBack());
             roleCheckBoxes.put(role, checkBox);
-            panel.add(checkBox);
+            rolesPanel.add(checkBox);
         }
 
-        return panel;
+        return rolesPanel;
     }
 
     // --- Faction list -------------------------------------------------------------------------------------------
@@ -466,6 +491,14 @@ public class AvailabilityTab extends ITab {
 
     // --- Mission roles ------------------------------------------------------------------------------------------
 
+    /**
+     * Shows only the roles that mean anything for this unit type. A Mek has no business being offered "mek carrier" or
+     * "paratrooper", and the Force Generator would ignore them anyway.
+     * <p>
+     * A role the unit file declares that does not fit is kept, selected and visible, so the player can see it and
+     * decide. Quietly dropping something out of somebody's file is not this tab's job.
+     * </p>
+     */
     private void loadMissionRoles(String missionRoles) {
         Set<MissionRole> chosen = EnumSet.noneOf(MissionRole.class);
         for (String roleName : missionRoles.split(",")) {
@@ -479,9 +512,25 @@ public class AvailabilityTab extends ITab {
             }
         }
 
+        int unitType = getEntity().getUnitType();
+        mismatchedRoles.clear();
+
         for (Map.Entry<MissionRole, JCheckBox> entry : roleCheckBoxes.entrySet()) {
-            entry.getValue().setSelected(chosen.contains(entry.getKey()));
+            MissionRole role = entry.getKey();
+            JCheckBox checkBox = entry.getValue();
+            boolean isSelected = chosen.contains(role);
+            boolean fits = role.fitsUnitType(unitType);
+
+            checkBox.setSelected(isSelected);
+            checkBox.setVisible(fits || isSelected);
+
+            if (isSelected && !fits) {
+                mismatchedRoles.add(role);
+            }
         }
+
+        rolesPanel.revalidate();
+        rolesPanel.repaint();
     }
 
     private String missionRolesText() {
@@ -519,6 +568,12 @@ public class AvailabilityTab extends ITab {
                 warnings.add(row.factionCode() + " starts in " + row.fromYear()
                       + ", but the unit does not exist until " + getEntity().getYear() + ".");
             }
+        }
+
+        if (!mismatchedRoles.isEmpty()) {
+            StringJoiner roleNames = new StringJoiner(", ");
+            mismatchedRoles.forEach(role -> roleNames.add(role.toString().replace('_', ' ')));
+            warnings.add("These mission roles do not apply to this unit type and will be ignored: " + roleNames + ".");
         }
 
         if (tableModel.hasStaleRows()) {
