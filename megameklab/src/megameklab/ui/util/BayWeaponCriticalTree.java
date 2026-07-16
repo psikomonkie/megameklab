@@ -1067,13 +1067,14 @@ public class BayWeaponCriticalTree extends JTree {
                 model.insertNodeInto(eqNode, bayNode, bayNode.getChildCount());
                 eqNode.setParent(bayNode);
 
-                if (eq.getType() instanceof WeaponType) {
+                if (eq instanceof WeaponMounted) {
                     bay.addWeaponToBay(eSource.getEntity().getEquipmentNum(eq));
                     if (eq.getLinkedBy() != null) {
                         moveToArc(eq.getLinkedBy());
                     }
-                } else if (eq.getType() instanceof AmmoType) {
+                } else if (eq instanceof AmmoMounted) {
                     bay.addAmmoToBay(eSource.getEntity().getEquipmentNum(eq));
+                    updateAmmoCapacity((AmmoMounted) eq);
                 }
             } else {
                 logger.debug("{}[{}] not found in {}",
