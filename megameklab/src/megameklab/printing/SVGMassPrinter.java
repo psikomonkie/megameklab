@@ -422,7 +422,7 @@ public class SVGMassPrinter {
               String location, int locId) {
             final String name = type.getShortName();
             final boolean rearMounted = mounted.isRearMounted();
-            final String key = name + "_" + location + (rearMounted ? "_rear" : "");
+            final String key = type.getInternalName() + "_" + location + (rearMounted ? "_rear" : "");
             if (list.containsKey(key)) {
                 ExportInventoryEntry entry = list.get(key);
                 entry.q += 1;
@@ -662,7 +662,7 @@ public class SVGMassPrinter {
               MiscType type,
               String location, int locId, boolean isStructural) {
             final String name = type.getShortName();
-            final String key = name + "_" + location + '_' + (isStructural ? "S" : "C");
+            final String key = type.getInternalName() + "_" + location + '_' + (isStructural ? "S" : "C");
             if (list.containsKey(key)) {
                 ExportInventoryEntry entry = list.get(key);
                 entry.q += 1;
@@ -683,7 +683,7 @@ public class SVGMassPrinter {
               AmmoType type,
               String location, int locId) {
             final String name = type.getShortName().replace("Ammo", "").trim()+" Ammo";
-            final String key = name + "_" + location;
+            final String key = type.getInternalName() + "_" + location;
             if (list.containsKey(key)) {
                 ExportInventoryEntry entry = list.get(key);
                 entry.q += 1;
@@ -723,7 +723,7 @@ public class SVGMassPrinter {
                 }
             }
             final String name = type.getShortName();
-            final String key = name + "_" + location;
+            final String key = type.getInternalName() + "_" + location;
             if (list.containsKey(key)) {
                 ExportInventoryEntry entry = list.get(key);
                 entry.q += 1;
@@ -1385,7 +1385,7 @@ public class SVGMassPrinter {
                     doors = Math.max(doors, bay.getDoors());
                 }
                 Map<String, Object> bayEntry = new HashMap<>();
-                bayEntry.put("n", bayNum.toString());
+                bayEntry.put("n", bayNum);
                 bayEntry.put("type", bayTypeString.toString());
                 bayEntry.put("capacity", bayCapacityString.toString());
                 bayEntry.put("doors", doors);
@@ -2352,6 +2352,7 @@ public class SVGMassPrinter {
                     String desc = quirksBundle.getString("QuirksInfo.option." + key + ".description");
                     desc = filterQuirkDescription(desc);
                     Map<String, String> entry = new HashMap<>();
+                    entry.put("key", key);
                     entry.put("name", name);
                     entry.put("description", desc);
                     entry.put("type", "positive");
@@ -2366,6 +2367,7 @@ public class SVGMassPrinter {
                     String desc = quirksBundle.getString("QuirksInfo.option." + key + ".description");
                     desc = filterQuirkDescription(desc);
                     Map<String, String> entry = new HashMap<>();
+                    entry.put("key", key);
                     entry.put("name", name);
                     entry.put("description", desc);
                     entry.put("type", "negative");
